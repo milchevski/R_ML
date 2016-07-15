@@ -1,0 +1,83 @@
+---
+title: "Prediction report"
+author: "Aleksandar Milchevski"
+date: "July 7, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+This document describes the training and testing of three diferent models in order to classify barbell lifts correctly and incorrectly in 5 different ways.
+
+The data comes from http://groupware.les.inf.puc-rio.br/har .
+
+## Crossvalidation
+In order to train and test the models properly and without bias, 30% of the training set is not used in the training process i.e. it is used to test the accuracy of the models.
+The remaing 70% of the training set is further split into three independent set, one for each model.
+
+## Model training
+Three diferent models were trained using the caret package: 
+ 1. "lvq" - Learning vector quantization
+ 2. "lda" - Linear discriminant analysis
+ 3. "gbm" - Boosted tree model
+ 
+## Results
+The three models were tested on the data not used in the training process. The obtained accuracy for the models are: 30.3% for the first model, 100% for the second model, 99.98% for the third model. Thus, the first model is rejected and not used in the further analysis.
+
+Another thing that also verifes the results is that the prediction from both of the remaining models matches perfectly for the testing 20 samples.
+
+Obtained labels:
+A A A A A A A A A A A A A A A A A A A A
+
+## R code
+
+```{r eval=FALSE}
+
+X_train <- read.csv( "pml-training.csv", header = TRUE )
+X_test <- read.csv( "pml-testing.csv", header = TRUE )
+col_names <- colnames(X_train)[(colSums(is.na(X_train)) == 0) & (colSums(is.na(X_test)) == 0)]
+
+X_test <- X_test[,col_names[col_names!="classe"] ]
+X_train <- X_train[, col_names]
+
+library(caret)
+inTrain <- createDataPartition(y=X_train$classe, p=0.7, list=FALSE)
+
+X_train <- X_train[ inTrain, ]
+X_cross <- X_train[ -inTrain, ]
+
+folds <- createFolds(y=X_train$classe, k=3, list=FALSE)
+X_train1 <- X_train[ folds==1, ]
+X_train2 <- X_train[ folds==2, ]
+X_train3 <- X_train[ folds==3, ]
+obj1 <- train( classe~., data=X_train1, method= "lvq")
+obj2 <- train( classe~., data=X_train2, method= "lda")
+obj3 <- train( classe~., data=X_train3, method= "gbm")
+
+pred_1 <- predict(obj1,X_cross)
+pred_2 <- predict(obj2,X_cross)
+pred_3 <- predict(obj3,X_cross)
+
+sum( pred_1 == X_cross$classe) / length( X_cross$classe )
+sum( pred_2 == X_cross$classe) / length( X_cross$classe )
+sum( pred_3 == X_cross$classe) / length( X_cross$classe )
+
+pred_F2 <- predict(obj2,X_test)
+pred_F3 <- predict(obj3,X_test)
+
+sum( pred_F2 == pred_F3) / 20
+
+```
+
+
+
+
+
+
+
+
+
